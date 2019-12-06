@@ -88,7 +88,8 @@ locals {
 }
 
 module "taskdef" {
-  source = "github.com/mergermarket/tf_ecs_task_definition_with_task_role"
+  source  = "mergermarket/task-definition-with-task-role/acuris"
+  version = "2.0.1"
 
   family                = local.ecs_family
   container_definitions = [module.service_container_definition.rendered]
@@ -98,7 +99,8 @@ module "taskdef" {
 }
 
 module "service_container_definition" {
-  source = "github.com/mergermarket/tf_ecs_container_definition"
+  source  = "mergermarket/ecs-container-definition/acuris"
+  version = "2.0.0"
 
   name  = "${var.release["component"]}${var.name_suffix}"
   image = var.release["image_id"]
