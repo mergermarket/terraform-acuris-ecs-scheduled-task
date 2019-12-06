@@ -18,46 +18,46 @@ variable "memory" {
 
 variable "command" {
   description = "The command that is passed to the container"
-  type        = "list"
+  type        = list(string)
   default     = []
 }
 
 variable "platform_config" {
   description = "Platform configuration"
-  type        = "map"
+  type        = map(string)
   default     = {}
 }
 
 variable "release" {
-  type        = "map"
+  type        = map(string)
   description = "Metadata about the release"
 }
 
 variable "secrets" {
-  type        = "map"
+  type        = map(string)
   description = "Secret credentials fetched using credstash"
   default     = {}
 }
 
 variable "application_secrets" {
-  type    = "list"
+  type    = list(string)
   default = []
 }
 
 variable "platform_secrets" {
-  type    = "list"
+  type    = list(string)
   default = []
 }
 
 variable "name_suffix" {
   description = "Set a suffix that will be applied to the name in order that a component can have multiple services per environment"
-  type        = "string"
+  type        = string
   default     = ""
 }
 
 variable "task_role_policy" {
   description = "IAM policy document to apply to the tasks via a task role"
-  type        = "string"
+  type        = string
 
   default = <<END
 {
@@ -71,16 +71,18 @@ variable "task_role_policy" {
   ]
 }
 END
+
 }
 
 variable "common_application_environment" {
   description = "Environment parameters passed to the container for all environments"
-  type = "map"
-  default = {}
+  type        = map(string)
+  default     = {}
 }
 
 variable "application_environment" {
   description = "Environment specific parameters passed to the container"
-  type = "map"
-  default = {}
+  type        = map(string)
+  default     = {}
 }
+

@@ -1,17 +1,19 @@
 resource "aws_cloudwatch_event_rule" "schedule" {
-  name        = "${var.env}-${lookup(var.release, "component")}${var.name_suffix}-schedule"
+  name        = "${var.env}-${var.release["component"]}${var.name_suffix}-schedule"
   description = "Schedule ECS target"
 
-  schedule_expression = "${var.schedule_expression}"
+  schedule_expression = var.schedule_expression
 }
 
-data "aws_caller_identity" "current" {}
+data "aws_caller_identity" "current" {
+}
 
-data "aws_region" "current" {}
+data "aws_region" "current" {
+}
 
 resource "aws_iam_role_policy" "cloudwatch" {
   name = "run-ecs-task"
-  role = "${aws_iam_role.cloudwatch.id}"
+  role = aws_iam_role.cloudwatch.id
 
   policy = <<EOF
 {
@@ -46,10 +48,11 @@ resource "aws_iam_role_policy" "cloudwatch" {
     ]
 }
 EOF
+
 }
 
 resource "aws_iam_role" "cloudwatch" {
-  name = "${var.env}-${lookup(var.release, "component")}${var.name_suffix}-cloudwatch-role"
+  name = "${var.env}-${var.release["component"]}${var.name_suffix}-cloudwatch-role"
 
   assume_role_policy = <<EOF
 {
@@ -66,95 +69,97 @@ resource "aws_iam_role" "cloudwatch" {
   ]
 }
 EOF
+
 }
 
 resource "aws_cloudwatch_event_target" "target" {
-  rule     = "${aws_cloudwatch_event_rule.schedule.name}"
+  rule     = aws_cloudwatch_event_rule.schedule.name
   arn      = "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/default"
-  role_arn = "${aws_iam_role.cloudwatch.arn}"
+  role_arn = aws_iam_role.cloudwatch.arn
 
   ecs_target {
-    task_definition_arn = "${module.taskdef.arn}"
+    task_definition_arn = module.taskdef.arn
     task_count          = 1
   }
 }
 
 locals {
-  ecs_family = "${var.env}-${lookup(var.release, "component")}${var.name_suffix}"
+  ecs_family = "${var.env}-${var.release["component"]}${var.name_suffix}"
 }
 
 module "taskdef" {
   source = "github.com/mergermarket/tf_ecs_task_definition_with_task_role"
 
-  family                = "${local.ecs_family}"
-  container_definitions = ["${module.service_container_definition.rendered}"]
-  policy                = "${var.task_role_policy}"
-  env                   = "${var.env}"
-  release               = "${var.release}"
+  family                = local.ecs_family
+  container_definitions = [module.service_container_definition.rendered]
+  policy                = var.task_role_policy
+  env                   = var.env
+  release               = var.release
 }
 
 module "service_container_definition" {
   source = "github.com/mergermarket/tf_ecs_container_definition"
 
-  name  = "${lookup(var.release, "component")}${var.name_suffix}"
-  image = "${lookup(var.release, "image_id")}"
+  name  = "${var.release["component"]}${var.name_suffix}"
+  image = var.release["image_id"]
 
-  cpu     = "${var.cpu}"
-  memory  = "${var.memory}"
-  command = "${var.command}"
+  cpu     = var.cpu
+  memory  = var.memory
+  command = var.command
 
-  application_secrets = "${var.application_secrets}"
-  platform_secrets    = "${var.platform_secrets}"
+  application_secrets = var.application_secrets
+  platform_secrets    = var.platform_secrets
 
-  container_env = "${merge(
-    map(
-      "LOGSPOUT_CLOUDWATCHLOGS_LOG_GROUP_STDOUT", "${var.env}-${lookup(var.release, "component")}${var.name_suffix}-stdout",
-      "LOGSPOUT_CLOUDWATCHLOGS_LOG_GROUP_STDERR", "${var.env}-${lookup(var.release, "component")}${var.name_suffix}-stderr",
-      "STATSD_HOST", "172.17.42.1",
-      "STATSD_PORT", "8125",
-      "STATSD_ENABLED", "true",
-      "ENV_NAME", "${var.env}",
-      "COMPONENT_NAME", "${lookup(var.release, "component")}",
-      "VERSION", "${lookup(var.release, "version")}",
-      "ECS_FAMILY", "${local.ecs_family}"
-    ),
+  container_env = merge(
+    {
+      "LOGSPOUT_CLOUDWATCHLOGS_LOG_GROUP_STDOUT" = "${var.env}-${var.release["component"]}${var.name_suffix}-stdout"
+      "LOGSPOUT_CLOUDWATCHLOGS_LOG_GROUP_STDERR" = "${var.env}-${var.release["component"]}${var.name_suffix}-stderr"
+      "STATSD_HOST"                              = "172.17.42.1"
+      "STATSD_PORT"                              = "8125"
+      "STATSD_ENABLED"                           = "true"
+      "ENV_NAME"                                 = var.env
+      "COMPONENT_NAME"                           = var.release["component"]
+      "VERSION"                                  = var.release["version"]
+      "ECS_FAMILY"                               = local.ecs_family
+    },
     var.common_application_environment,
     var.application_environment,
-    var.secrets
-  )}"
+    var.secrets,
+  )
 
-  labels {
-    component = "${lookup(var.release, "component")}"
-    env       = "${var.env}"
-    team      = "${lookup(var.release, "team")}"
-    version   = "${lookup(var.release, "version")}"
+  labels = {
+    component = var.release["component"]
+    env       = var.env
+    team      = var.release["team"]
+    version   = var.release["version"]
   }
 }
 
 resource "aws_cloudwatch_log_group" "stdout" {
-  name              = "${var.env}-${lookup(var.release, "component")}${var.name_suffix}-stdout"
+  name              = "${var.env}-${var.release["component"]}${var.name_suffix}-stdout"
   retention_in_days = "7"
 }
 
 resource "aws_cloudwatch_log_group" "stderr" {
-  name              = "${var.env}-${lookup(var.release, "component")}${var.name_suffix}-stderr"
+  name              = "${var.env}-${var.release["component"]}${var.name_suffix}-stderr"
   retention_in_days = "7"
 }
 
 resource "aws_cloudwatch_log_subscription_filter" "kinesis_log_stdout_stream" {
-  count           = "${var.platform_config["datadog_log_subscription_arn"] != "" ? 1 : 0}"
+  count           = var.platform_config["datadog_log_subscription_arn"] != "" ? 1 : 0
   name            = "kinesis-log-stdout-stream-${local.ecs_family}"
-  destination_arn = "${var.platform_config["datadog_log_subscription_arn"]}"
+  destination_arn = var.platform_config["datadog_log_subscription_arn"]
   log_group_name  = "${local.ecs_family}-stdout"
   filter_pattern  = ""
-  depends_on      = ["aws_cloudwatch_log_group.stdout"]
+  depends_on      = [aws_cloudwatch_log_group.stdout]
 }
 
 resource "aws_cloudwatch_log_subscription_filter" "kinesis_log_stderr_stream" {
-  count           = "${var.platform_config["datadog_log_subscription_arn"] != "" ? 1 : 0}"
+  count           = var.platform_config["datadog_log_subscription_arn"] != "" ? 1 : 0
   name            = "kinesis-log-stdout-stream-${local.ecs_family}"
-  destination_arn = "${var.platform_config["datadog_log_subscription_arn"]}"
+  destination_arn = var.platform_config["datadog_log_subscription_arn"]
   log_group_name  = "${local.ecs_family}-stderr"
   filter_pattern  = ""
-  depends_on      = ["aws_cloudwatch_log_group.stderr"]
+  depends_on      = [aws_cloudwatch_log_group.stderr]
 }
+
