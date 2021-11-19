@@ -33,6 +33,11 @@ variable "release" {
   description = "Metadata about the release"
 }
 
+variable "image_id" {
+  type        = string
+  description = "image for the task def"
+}
+
 variable "secrets" {
   type        = map(string)
   description = "Secret credentials fetched using credstash"

@@ -103,7 +103,7 @@ module "service_container_definition" {
   version = "2.0.0"
 
   name  = "${var.release["component"]}${var.name_suffix}"
-  image = var.release["image_id"]
+  image = var.image_id
 
   cpu     = var.cpu
   memory  = var.memory
