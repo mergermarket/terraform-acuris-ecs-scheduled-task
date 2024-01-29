@@ -16,6 +16,11 @@ variable "memory" {
   default     = "256"
 }
 
+variable "cluster_name" {
+  description = "Name of the cluster to start the task in"
+  default = "default"
+}
+
 variable "command" {
   description = "The command that is passed to the container"
   type        = list(string)

@@ -29,7 +29,7 @@ resource "aws_iam_role_policy" "cloudwatch" {
             ],
             "Condition": {
                 "ArnLike": {
-                    "ecs:cluster": "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/default"
+                    "ecs:cluster": "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${var.cluster_name}"
                 }
             }
         },
@@ -74,7 +74,7 @@ EOF
 
 resource "aws_cloudwatch_event_target" "target" {
   rule     = aws_cloudwatch_event_rule.schedule.name
-  arn      = "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/default"
+  arn      = "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:cluster/${var.cluster_name}"
   role_arn = aws_iam_role.cloudwatch.arn
 
   ecs_target {
